@@ -1,5 +1,4 @@
-
-
+#!/usr/bin/env python3
 import os
 import sys
 import time
@@ -11,8 +10,9 @@ from watchdog.observers import Observer
 from watchdog.events import FileSystemEventHandler
 from apscheduler.schedulers.blocking import BlockingScheduler
 
-DIRECTORY_TO_WATCH = "/Users/saarun/sophos/scan_dir"
-DIRECTORY_TO_SCAN = "/Users/saarun/sophos/todecode"
+#Default DIR Path
+DIRECTORY_TO_WATCH = "/tmp/scan_dir"
+DIRECTORY_TO_SCAN = "/tmp/todecode"#"/Users/saarun/sophos/todecode"
 OUTFILES = "PII_filtered_"
 REPLACE_TEXT = "file_path"
 
@@ -20,10 +20,9 @@ def performPII(filename):
     """
     Function to perform PII scan
     """
-    print(f'Perform PII: {filename}')
+    print(f'***PERFORM PII: {filename}')
     with open(filename, "r") as f:
         fullfile = f.readlines()
-    print(f'FILE: {fullfile}')
     result = []
     for line in fullfile:
         if REPLACE_TEXT in line:
@@ -31,10 +30,8 @@ def performPII(filename):
             res1 = re.sub(r':[\s]?"[a-zA-Z]:', r":<d>", res)
             result.append(res1)
     filteredFile = os.path.join(DIRECTORY_TO_SCAN, OUTFILES + filename.split("/")[-1])
-    print('File to write: {}'.format(result))
     with open(filteredFile, "w") as fd:
         for line in result:
-            print(line)
             fd.write(str(line))
     return
 
@@ -68,7 +65,7 @@ class Handler(FileSystemEventHandler):
     @staticmethod
     def on_any_event(event):
         if event.is_directory:
-            print(f'No CHanges in the Directory-{event.src_path}')
+            #print(f'No CHanges in the Directory-{event.src_path}')
             return None
 
         elif event.event_type == 'created' or \
@@ -92,7 +89,12 @@ class Handler(FileSystemEventHandler):
             elif ".txt" in event.src_path and DIRECTORY_TO_SCAN in event.src_path:
                 #Original File after ZIP in the DESTINATION Directory for Scan
                 print(f"Src File on Dest Dir: {event.src_path}")
-                performPII(event.src_path)
+                if os.path.exists(f'{event.src_path}'):
+                    performPII(event.src_path)
+                    os.system(f"rm {event.src_path}")
+                else:
+                    #Existing Original File Deleted
+                    pass
 
             if ".zip" in event.src_path and DIRECTORY_TO_SCAN in event.src_path:
                 print(f"File is : {event.src_path}")
@@ -108,6 +110,16 @@ class Handler(FileSystemEventHandler):
                     zipObj.extractall(DIRECTORY_TO_SCAN, pwd=sec)
 
 if __name__ == '__main__':
+    user_input = input("Enter the path of the Directory to Scan: ")
+
+    if os.path.isdir(user_input):
+        DIRECTORY_TO_WATCH = user_input
+    else:
+        assert os.path.exists(user_input), "I did not find the Directory to Scan"
+
+    print(f"{DIRECTORY_TO_WATCH}")
+    print(f"{DIRECTORY_TO_SCAN}")
+
     #Thread 1 to Watch the Directory for Txt File
     w = Watcher(DIRECTORY_TO_WATCH)
     out1 = threading.Thread(name='Scan New Txt File', target=w.run)
@@ -118,7 +130,7 @@ if __name__ == '__main__':
     out2 = threading.Thread(name='Scan Zip File', target=w1.run)
     out2.start()
 
-    print("No, that's okay")
+    print("That's okay!! ALL Good")
 
 '''
 if __name__ == '__main__':
