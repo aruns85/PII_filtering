@@ -8,7 +8,6 @@ import re
 from zipfile import ZipFile
 from watchdog.observers import Observer
 from watchdog.events import FileSystemEventHandler
-from apscheduler.schedulers.blocking import BlockingScheduler
 
 #Default DIR Path
 DIRECTORY_TO_WATCH = "/tmp/scan_dir"
